@@ -16,17 +16,16 @@ repos:
       - id: check-json
       - id: check-merge-conflict
 
-  # Node.js / JavaScript linting (uncomment if using Node.js)
-  # - repo: https://github.com/pre-commit/mirrors-eslint
-  #   rev: v8.44.0
-  #   hooks:
-  #     - id: eslint
-  #       types: [javascript]
-  #       additional_dependencies: ['eslint', 'eslint-config-prettier']
+  # Python linting with ruff
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.2
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
 
   # YAML linting
   - repo: https://github.com/adrienverge/yamllint.git
     rev: v1.32.0
     hooks:
       - id: yamllint
-        args: [--safe]
