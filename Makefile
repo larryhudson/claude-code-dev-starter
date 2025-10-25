@@ -25,9 +25,16 @@ dev:
 
 dev-logs:
 	@if [ -f $(DEV_LOG) ]; then \
-		tail -f $(DEV_LOG) | sed 's/\x1b\[[0-9;]*m//g'; \
+		tail -n 50 $(DEV_LOG) | sed 's/\x1b\[[0-9;]*m//g'; \
 	else \
 		echo "Dev log file not found. Start dev server with 'make dev'"; \
+	fi
+	@echo ""
+	@echo "Dev server status: " ; \
+	if [ -f $(PIDFILE) ] && kill -0 $$(cat $(PIDFILE)) 2>/dev/null; then \
+		echo "  running"; \
+	else \
+		echo "  stopped"; \
 	fi
 
 lint:
