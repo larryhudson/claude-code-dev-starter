@@ -1,0 +1,32 @@
+# Pre-commit configuration for this project
+# Install pre-commit: pip install pre-commit
+# Set up hooks: pre-commit install
+# Run manually: pre-commit run --all-files
+
+repos:
+  # General file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: check-json
+      - id: check-merge-conflict
+
+  # Node.js / JavaScript linting (uncomment if using Node.js)
+  # - repo: https://github.com/pre-commit/mirrors-eslint
+  #   rev: v8.44.0
+  #   hooks:
+  #     - id: eslint
+  #       types: [javascript]
+  #       additional_dependencies: ['eslint', 'eslint-config-prettier']
+
+  # YAML linting
+  - repo: https://github.com/adrienverge/yamllint.git
+    rev: v1.32.0
+    hooks:
+      - id: yamllint
+        args: [--safe]
