@@ -1,23 +1,30 @@
 # Claude Code Dev Starter Template
 
-A production-ready template for setting up new projects optimized for working with [Claude Code](https://docs.claude.com/en/docs/claude-code/). This template includes development tools, linting hooks, CI/CD pipelines, and Claude Code integrations to streamline your development workflow.
+A production-ready Python template for setting up new projects optimized for working with [Claude Code](https://docs.claude.com/en/docs/claude-code/). This template includes development tools, linting hooks, CI/CD pipelines, and Claude Code integrations to streamline your development workflow.
 
 ## What's Included
 
 ### Development Setup
 
-- **Makefile**: Convenient commands for managing your development environment
-  - `make dev`: Start your development server using hivemind with process management
+- **Makefile**: Convenient commands for managing your Python development environment
+  - `make dev`: Start FastAPI development server using hivemind with process management
   - `make dev-logs`: View and tail development logs (with ANSI codes stripped for readability)
   - `make lint`: Lint Python files with ruff
   - `make format`: Format Python files with ruff
-  - `make type-check`: Type check with ty
-  - `make lint-file FILE=path/to/file`: Lint and format a specific file
+  - `make type-check`: Type check Python files with ty
   - `make stop-dev`: Stop the running development server
 
-- **Procfile**: Configuration file for hivemind to manage multiple development processes
-  - FastAPI development server with auto-reload
+- **Procfile**: Configuration file for hivemind to manage development processes
+  - FastAPI development server with auto-reload using `uv run fastapi dev`
   - Can be extended with additional processes
+
+- **pyproject.toml**: Python project configuration
+  - FastAPI and Uvicorn dependencies
+  - Development dependencies (ruff, ty, pyyaml)
+  - Ruff linting and formatting configuration
+
+- **uv**: Fast Python package manager for dependency management
+  - Replaces pip/venv for faster, more reliable dependency resolution
 
 ### Claude Code Integration
 
@@ -30,17 +37,17 @@ A production-ready template for setting up new projects optimized for working wi
   - Matches modified files against glob patterns
   - Runs configured commands with proper substitution (`{file}`, `{dir}`)
   - Returns structured JSON feedback to Claude Code
-  - Ensures code style consistency without manual intervention
+  - Automatically lints, formats, and type-checks Python files after edits
 
 - **Post-Claude-Edit Configuration** (`.post-claude-edit-config.yaml`): Defines what checks run after edits
-  - Pattern-based file matching (e.g., `*.ts`, `*.tsx`)
-  - Flexible command configuration
+  - Pattern-based file matching (e.g., `*.py`)
+  - Flexible command configuration for Python tooling
   - Enable/disable checks without removing them
-  - Includes helpful examples
+  - Includes ruff linting, formatting, and ty type-checking
 
 - **SessionStart Hook** (`.claude/hooks/session-start.sh`): Runs when a Claude Code session starts
-  - Checks for required development tools (hivemind, jq, npm)
-  - Installs npm dependencies if needed
+  - Checks for required development tools (hivemind, jq, uv, python)
+  - Installs Python dependencies if needed
   - Provides helpful context about available commands
 
 ### Code Quality
@@ -58,15 +65,22 @@ A production-ready template for setting up new projects optimized for working wi
 
 - **.github/workflows/ci.yaml**: GitHub Actions workflow for automated testing and linting
   - Runs on push to main/develop branches and pull requests
-  - Lint job: Checks code style and formatting
-  - Test job: Runs your test suite
-  - Node.js 18 environment with npm caching
+  - Lint job: Checks Python code style with ruff
+  - Type-check job: Validates Python types with ty
+  - Python 3.12+ environment with uv caching
 
 ## Getting Started
 
 ### 1. Installation
 
 ```bash
+# Install uv (Python package manager)
+# On macOS
+brew install uv
+
+# On Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
 # Install hivemind (for process management)
 # On macOS
 brew install hivemind
@@ -80,38 +94,56 @@ pip install pre-commit
 # Set up pre-commit hooks
 pre-commit install
 
-# Install Python dependencies for Claude Code hooks
-pip install pyyaml
+# Install Python dependencies via uv
+uv sync
 ```
 
 ### 2. Configure Your Project
 
-1. Update `Procfile` with your project's development commands:
-   ```
-   web: npm run dev
-   ts-watch: npm run ts:watch
-   tests: npm run test:watch
+1. Update `pyproject.toml` with your project's dependencies:
+   ```toml
+   [project]
+   name = "my-project"
+   dependencies = [
+       "fastapi[standard]>=0.120.0",
+       "uvicorn[standard]>=0.38.0",
+       "sqlalchemy>=2.0.0",  # Add as needed
+   ]
+
+   [dependency-groups]
+   dev = [
+       "pytest>=7.0.0",
+       "pytest-cov>=4.0.0",
+   ]
    ```
 
-2. Update `.post-claude-edit-config.yaml` with checks you want to run:
+2. Update `Procfile` with your project's development commands:
+   ```
+   web: uv run fastapi dev app/main.py
+   tests: uv run pytest --watch
+   ```
+
+3. Update `.post-claude-edit-config.yaml` with checks you want to run:
    ```yaml
    checks:
-     - name: lint-typescript
-       patterns: ['*.ts', '*.tsx', '*.js', '*.jsx']
-       command: 'npm run lint -- --fix {file}'
+     - name: lint-python
+       patterns: ['*.py']
+       command: 'uv run ruff check --fix {file}'
        enabled: true
+     - name: my-custom-check
+       patterns: ['app/**/*.py']
+       command: 'uv run pytest {file}'
+       enabled: false
    ```
-   - Uncomment examples to enable them
    - Add custom checks for your project
    - Use `{file}` placeholder for the modified file path
    - Set `enabled: false` to disable checks temporarily
 
-3. Update `.pre-commit-config.yaml` with hooks relevant to your project:
-   - Uncomment the ESLint section if using JavaScript/TypeScript
-   - Add additional hooks for your language/framework
+4. Update `.pre-commit-config.yaml` with hooks relevant to your project:
+   - Add additional hooks for Python linting beyond ruff if desired
 
-4. Update `.github/workflows/ci.yaml` with your actual npm scripts:
-   - Ensure `npm run lint`, `npm run format:check`, and `npm test` exist
+5. Update `.github/workflows/ci.yaml` with your actual test commands:
+   - Ensure `uv run ruff check`, `uv run ty check`, and `uv run pytest` work
    - Or adjust the commands to match your project
 
 ### 3. Claude Code Configuration
@@ -148,18 +180,36 @@ make stop-dev
 
 ### Working with Claude Code
 
-1. **Edit a file**: Claude modifies `src/app.ts`
-2. **Automatic formatting**: The PostToolUse hook runs `make lint-file FILE=src/app.ts`
-3. **Result**: File is automatically linted and formatted
+1. **Edit a file**: Claude modifies `app/main.py`
+2. **Automatic formatting**: The PostToolUse hook runs linting, formatting, and type-checking
+3. **Result**: File is automatically linted, formatted, and type-checked
 
-### Manual Linting
+### Manual Linting and Type Checking
 
 ```bash
-# Lint and format a specific file
-make lint-file FILE=src/utils/helpers.ts
+# Lint all Python files
+make lint
 
-# Or use your linter directly
-npm run lint -- --fix src/utils/helpers.ts
+# Format all Python files
+make format
+
+# Type check all Python files
+make type-check
+
+# Or use the tools directly
+uv run ruff check --fix .
+uv run ruff format .
+uv run ty check .
+```
+
+### Running Tests
+
+```bash
+# Run tests with pytest
+uv run pytest
+
+# Run tests with coverage
+uv run pytest --cov=app
 ```
 
 ### Running Pre-commit Checks
@@ -187,10 +237,16 @@ pre-commit autoupdate
 ├── .github/
 │   └── workflows/
 │       └── ci.yaml                # GitHub Actions CI/CD pipeline
+├── app/
+│   ├── __init__.py               # App package
+│   └── main.py                    # FastAPI application entry point
+├── tests/                         # Test directory (add pytest tests here)
 ├── .post-claude-edit-config.yaml   # Post-edit checks configuration
 ├── .pre-commit-config.yaml         # Pre-commit hook configuration
 ├── Makefile                        # Development commands
 ├── Procfile                        # Process definitions for hivemind
+├── pyproject.toml                  # Python project configuration and dependencies
+├── uv.lock                         # Locked dependencies (managed by uv)
 └── README.md                       # This file
 ```
 
@@ -202,19 +258,19 @@ Edit `.post-claude-edit-config.yaml` to add or modify checks:
 
 ```yaml
 checks:
-  - name: format-json
-    patterns: ['*.json']
-    command: 'npx prettier --write {file}'
+  - name: lint-python
+    patterns: ['*.py']
+    command: 'uv run ruff check --fix {file}'
     enabled: true
 
-  - name: typecheck
-    patterns: ['*.ts', '*.tsx']
-    command: 'npm run type-check'
+  - name: format-python
+    patterns: ['*.py']
+    command: 'uv run ruff format {file}'
     enabled: true
 
   - name: test-file
-    patterns: ['src/**/*.ts']
-    command: 'npm test -- {file}'
+    patterns: ['tests/**/*.py']
+    command: 'uv run pytest {file}'
     enabled: false  # Disabled for now
 ```
 
@@ -222,16 +278,36 @@ checks:
 - **command**: Command to execute (use `{file}` for file path, `{dir}` for directory)
 - **enabled**: Toggle without deleting the check
 
+### Adding Dependencies
+
+Edit `pyproject.toml` to add new dependencies:
+
+```toml
+[project]
+dependencies = [
+    "fastapi[standard]>=0.120.0",
+    "sqlalchemy>=2.0.0",  # Add your dependency
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=7.0.0",
+    "black>=23.0.0",  # Add dev tools
+]
+```
+
+Then run `uv sync` to update your environment.
+
 ### Adding More Make Targets
 
 Edit `Makefile` to add custom targets:
 
 ```makefile
-build:
-	npm run build
+test:
+	uv run pytest
 
 deploy:
-	npm run deploy
+	uv run fastapi run app/main.py
 ```
 
 ### Adding More Processes
@@ -239,9 +315,9 @@ deploy:
 Edit `Procfile` to add or remove processes:
 
 ```procfile
-web: npm run dev
-api: npm run api
-db: docker-compose up
+web: uv run fastapi dev app/main.py
+api: uv run python scripts/background_worker.py
+tests: uv run pytest --watch
 ```
 
 ### Extending Pre-commit Hooks
