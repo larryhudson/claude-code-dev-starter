@@ -7,12 +7,12 @@ to run based on the modified file's path.
 """
 
 import json
-import sys
-import subprocess
 import os
-from pathlib import Path
+import subprocess
+import sys
 from fnmatch import fnmatch
-from typing import Optional, List, Dict, Any
+from pathlib import Path
+from typing import Any
 
 try:
     import yaml
@@ -21,7 +21,7 @@ except ImportError:
     sys.exit(1)
 
 
-def load_config(project_dir: str) -> Optional[Dict[str, Any]]:
+def load_config(project_dir: str) -> dict[str, Any] | None:
     """Load the .post-claude-edit-config.yaml file."""
     config_path = Path(project_dir) / ".post-claude-edit-config.yaml"
 
@@ -29,7 +29,7 @@ def load_config(project_dir: str) -> Optional[Dict[str, Any]]:
         return None
 
     try:
-        with open(config_path, 'r') as f:
+        with open(config_path) as f:
             config = yaml.safe_load(f)
             return config if config else None
     except Exception as e:
@@ -37,7 +37,7 @@ def load_config(project_dir: str) -> Optional[Dict[str, Any]]:
         return None
 
 
-def get_file_path_from_input() -> Optional[str]:
+def get_file_path_from_input() -> str | None:
     """Extract file path from stdin JSON."""
     try:
         input_data = json.load(sys.stdin)
@@ -50,7 +50,7 @@ def get_file_path_from_input() -> Optional[str]:
         return None
 
 
-def matches_patterns(file_path: str, patterns: List[str]) -> bool:
+def matches_patterns(file_path: str, patterns: list[str]) -> bool:
     """Check if file path matches any of the patterns."""
     for pattern in patterns:
         if fnmatch(file_path, pattern) or fnmatch(Path(file_path).name, pattern):
@@ -66,12 +66,7 @@ def run_command(command: str, file_path: str, project_dir: str) -> tuple[bool, s
 
     try:
         result = subprocess.run(
-            cmd,
-            shell=True,
-            cwd=project_dir,
-            capture_output=True,
-            text=True,
-            timeout=30
+            cmd, shell=True, cwd=project_dir, capture_output=True, text=True, timeout=30
         )
 
         output = result.stdout + result.stderr
@@ -107,7 +102,8 @@ def main():
     # Find matching checks
     checks = config.get("checks", [])
     matching_checks = [
-        check for check in checks
+        check
+        for check in checks
         if check.get("enabled", True) and matches_patterns(file_path, check.get("patterns", []))
     ]
 
@@ -124,19 +120,16 @@ def main():
             continue
 
         success, output = run_command(command, file_path, project_dir)
-        results.append({
-            "name": check.get("name", "unknown"),
-            "success": success,
-            "output": output.strip() if output else ""
-        })
+        results.append(
+            {
+                "name": check.get("name", "unknown"),
+                "success": success,
+                "output": output.strip() if output else "",
+            }
+        )
 
     # Return results as JSON
-    response = {
-        "hookSpecificOutput": {
-            "hookEventName": "PostToolUse",
-            "checks": results
-        }
-    }
+    response = {"hookSpecificOutput": {"hookEventName": "PostToolUse", "checks": results}}
 
     print(json.dumps(response))
 

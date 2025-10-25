@@ -1,31 +1,27 @@
+---
 # Post-Claude-Edit Configuration
 # This file defines what checks/commands should run after Claude modifies files
 # Each check has:
 #   - name: A descriptive name for the check
 #   - patterns: List of glob patterns to match file paths
-#   - command: The command to run (use {file} for the file path, {dir} for parent directory)
+#   - command: The command to run (use {file} for the file path,
+#     {dir} for parent directory)
 
 checks:
-  # Example: Lint and format TypeScript/JavaScript files
-  - name: lint-typescript
-    patterns: ['*.ts', '*.tsx', '*.js', '*.jsx']
-    command: 'npm run lint -- --fix {file}'
+  # Lint and format Python files with ruff
+  - name: lint-python
+    patterns: ['*.py']
+    command: 'uv run ruff check --fix {file}'
     enabled: true
 
-  # Example: Format JSON files
-  # - name: format-json
-  #   patterns: ['*.json']
-  #   command: 'npx prettier --write {file}'
-  #   enabled: true
+  # Format Python files with ruff
+  - name: format-python
+    patterns: ['*.py']
+    command: 'uv run ruff format {file}'
+    enabled: true
 
-  # Example: Validate YAML files
-  # - name: lint-yaml
-  #   patterns: ['*.yaml', '*.yml']
-  #   command: 'yamllint {file}'
-  #   enabled: true
-
-  # Example: Run type checking on TypeScript
-  # - name: typecheck
-  #   patterns: ['*.ts', '*.tsx']
-  #   command: 'npm run type-check'
-  #   enabled: true
+  # Type check Python files with ty
+  - name: type-check-python
+    patterns: ['*.py']
+    command: 'uv run ty check {file}'
+    enabled: true

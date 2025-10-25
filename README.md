@@ -9,11 +9,15 @@ A production-ready template for setting up new projects optimized for working wi
 - **Makefile**: Convenient commands for managing your development environment
   - `make dev`: Start your development server using hivemind with process management
   - `make dev-logs`: View and tail development logs (with ANSI codes stripped for readability)
+  - `make lint`: Lint Python files with ruff
+  - `make format`: Format Python files with ruff
+  - `make type-check`: Type check with ty
   - `make lint-file FILE=path/to/file`: Lint and format a specific file
   - `make stop-dev`: Stop the running development server
 
 - **Procfile**: Configuration file for hivemind to manage multiple development processes
-  - Customize with your project's specific commands (e.g., Node.js server, TypeScript watcher, test runner)
+  - FastAPI development server with auto-reload
+  - Can be extended with additional processes
 
 ### Claude Code Integration
 

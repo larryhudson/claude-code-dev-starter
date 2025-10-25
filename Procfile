@@ -1,14 +1,4 @@
-# Example Procfile for use with hivemind
+# Procfile for use with hivemind
 # This file defines the processes that should run during development
-# Customize these commands based on your project needs
 
-# Example Node.js dev server
-# web: npm run dev
-
-# Example TypeScript watcher
-# ts-watch: npm run ts:watch
-
-# Example test watcher
-# tests: npm run test:watch
-
-# Add your project's development commands above
+web: uv run fastapi dev main:app --host 0.0.0.0 --port 8000
