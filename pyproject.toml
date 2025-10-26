@@ -27,6 +27,9 @@ select = [
 ignore = [
     "E501",  # Line too long (handled by formatter)
 ]
+unfixable = [
+    "F401",  # Unused imports - report but don't auto-remove
+]
 
 [tool.ruff.lint.isort]
 known-first-party = ["main"]
