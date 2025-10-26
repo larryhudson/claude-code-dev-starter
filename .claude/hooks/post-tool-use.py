@@ -129,42 +129,29 @@ def main():
         )
 
     # Format results as a readable string for additionalContext
-    # Only include failures or actual modifications (not "all passed" messages)
+    # Only include failures or meaningful output (use exit code to determine)
     context_lines = []
     for result in results:
         output = result["output"]
 
-        # Skip empty output
+        # Always include failures (non-zero exit code)
+        if not result["success"]:
+            context_lines.append(f"[{result['name']}] FAILED")
+            if output:
+                context_lines.append(output)
+            context_lines.append("")
+            continue
+
+        # For successful checks, skip if no output
         if not output:
             continue
 
-        # Skip successful checks with no meaningful output
-        # Common success patterns that we don't need to report (lowercase)
-        success_patterns = [
-            "all checks passed!",
-            "file left unchanged",
-            "files left unchanged",
-            "would reformat",
-            "file reformatted",
-            "files reformatted",
-        ]
-
-        # If check succeeded and output only contains success messages, skip it
-        if result["success"]:
-            output_lower = output.lower()
-            # Skip if output is just a success message with no actual issues
-            if any(pattern in output_lower for pattern in success_patterns):
-                # But include if there are actual warnings/errors/fixes
-                if not any(
-                    indicator in output_lower
-                    for indicator in ["warning", "error", "fixed", "found"]
-                ):
-                    continue
-
-        # Include this check's output
-        context_lines.append(f"[{result['name']}]")
-        context_lines.append(output)
-        context_lines.append("")
+        # For successful checks with output, only include if there are warnings or fixes
+        output_lower = output.lower()
+        if any(indicator in output_lower for indicator in ["warning", "error", "fixed", "found"]):
+            context_lines.append(f"[{result['name']}]")
+            context_lines.append(output)
+            context_lines.append("")
 
     additional_context = "\n".join(context_lines).strip() if context_lines else ""
 
