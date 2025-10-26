@@ -7,6 +7,11 @@ name: Weekly README Check
     - cron: '0 9 * * 1'
   workflow_dispatch:  # Allow manual triggering for testing
 
+permissions:
+  id-token: write  # Required for OIDC token
+  contents: write  # Required to create commits and PRs
+  pull-requests: write  # Required to create PRs
+
 jobs:
   check-readme:
     runs-on: ubuntu-latest
