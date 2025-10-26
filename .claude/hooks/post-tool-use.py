@@ -128,8 +128,43 @@ def main():
             }
         )
 
+    # Format results as a readable string for additionalContext
+    # Only include failures or meaningful output (use exit code to determine)
+    context_lines = []
+    for result in results:
+        output = result["output"]
+
+        # Always include failures (non-zero exit code)
+        if not result["success"]:
+            context_lines.append(f"[{result['name']}] FAILED")
+            if output:
+                context_lines.append(output)
+            context_lines.append("")
+            continue
+
+        # For successful checks, skip if no output
+        if not output:
+            continue
+
+        # For successful checks with output, only include if there are warnings or fixes
+        output_lower = output.lower()
+        if any(indicator in output_lower for indicator in ["warning", "error", "fixed", "found"]):
+            context_lines.append(f"[{result['name']}]")
+            context_lines.append(output)
+            context_lines.append("")
+
+    additional_context = "\n".join(context_lines).strip() if context_lines else ""
+
     # Return results as JSON
-    response = {"hookSpecificOutput": {"hookEventName": "PostToolUse", "checks": results}}
+    if additional_context:
+        response = {
+            "hookSpecificOutput": {
+                "hookEventName": "PostToolUse",
+                "additionalContext": additional_context,
+            }
+        }
+    else:
+        response = {}
 
     print(json.dumps(response))
 
