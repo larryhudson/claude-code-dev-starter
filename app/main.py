@@ -38,11 +38,6 @@ async def get_user(user_id: int):
     return {"user_id": user_id, "name": "John Doe"}
 
 
-def test_function_with_syntax_error():
-    # Fixed: added the missing colon!
-    pass
-
-
 if __name__ == "__main__":
     import uvicorn
 

@@ -39,62 +39,11 @@ if ! command -v npm &> /dev/null; then
   fi
 fi
 
-# Install hivemind if missing
+# Check for hivemind but don't auto-install (manual installation recommended)
 if ! command -v hivemind &> /dev/null; then
-  echo "hivemind not found, attempting to install..."
-  # Try package manager first
-  if ! install_package hivemind 2>/dev/null; then
-    # If package manager doesn't have it, try installing from GitHub releases
-    echo "Package manager installation failed, trying GitHub releases..."
-    ARCH=$(uname -m)
-    OS=$(uname -s | tr '[:upper:]' '[:lower:]')
-
-    # Map architecture names
-    case $ARCH in
-      x86_64) ARCH="amd64" ;;
-      aarch64) ARCH="arm64" ;;
-      armv7l) ARCH="arm" ;;
-    esac
-
-    # Download and install hivemind
-    HIVEMIND_VERSION="1.1.0"
-    DOWNLOAD_URL="https://github.com/DarthSim/hivemind/releases/download/v${HIVEMIND_VERSION}/hivemind-v${HIVEMIND_VERSION}-${OS}-${ARCH}.gz"
-
-    if command -v curl &> /dev/null; then
-      if curl -fsSL "$DOWNLOAD_URL" 2>/dev/null | gunzip > /tmp/hivemind 2>/dev/null; then
-        chmod +x /tmp/hivemind
-        if sudo mv /tmp/hivemind /usr/local/bin/hivemind 2>/dev/null || mv /tmp/hivemind ~/.local/bin/hivemind 2>/dev/null; then
-          echo "hivemind installed successfully"
-        else
-          echo "Warning: Could not install hivemind (no write permissions)"
-          rm -f /tmp/hivemind
-        fi
-      else
-        echo "Warning: Could not download hivemind (network issue or wrong URL)"
-      fi
-    elif command -v wget &> /dev/null; then
-      if wget -qO- "$DOWNLOAD_URL" 2>/dev/null | gunzip > /tmp/hivemind 2>/dev/null; then
-        chmod +x /tmp/hivemind
-        if sudo mv /tmp/hivemind /usr/local/bin/hivemind 2>/dev/null || mv /tmp/hivemind ~/.local/bin/hivemind 2>/dev/null; then
-          echo "hivemind installed successfully"
-        else
-          echo "Warning: Could not install hivemind (no write permissions)"
-          rm -f /tmp/hivemind
-        fi
-      else
-        echo "Warning: Could not download hivemind (network issue or wrong URL)"
-      fi
-    else
-      echo "Warning: curl or wget required to download hivemind"
-    fi
-  fi
-
-  # Final check
-  if ! command -v hivemind &> /dev/null; then
-    echo "Note: hivemind could not be installed automatically."
-    echo "      Install manually: https://github.com/DarthSim/hivemind#installation"
-    echo "      You can still use the project, but 'make dev' will not work."
-  fi
+  echo "Note: hivemind is not installed."
+  echo "      Install manually: https://github.com/DarthSim/hivemind#installation"
+  echo "      You can still use the project, but 'make dev' will not work."
 fi
 
 # Ensure npm dependencies are installed if package.json exists
