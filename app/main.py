@@ -7,7 +7,7 @@ from app.chat import router as chat_router
 from app.mcp_server import mcp
 
 # Create MCP ASGI app
-mcp_app = mcp.http_app(path="/mcp")
+mcp_app = mcp.http_app()
 
 
 @asynccontextmanager
@@ -31,7 +31,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount MCP server
+# Mount MCP server (will be accessible at /mcp/mcp due to internal path)
 app.mount("/mcp", mcp_app)
 
 # Include chat router

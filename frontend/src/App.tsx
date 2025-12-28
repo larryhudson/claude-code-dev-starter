@@ -1,4 +1,5 @@
 import { useChat } from "@ai-sdk/react"
+import { useState } from "react"
 import {
   Conversation,
   ConversationContent,
@@ -17,12 +18,72 @@ import {
   PromptInputSubmit,
 } from "@/components/ai-elements/prompt-input"
 import { Card } from "@/components/ui/card"
-import { MessageCircle } from "lucide-react"
+import { MessageCircle, Wrench, CheckCircle, Loader2 } from "lucide-react"
+
+// Helper to check if a part is a tool part
+function isToolPart(part: { type: string }): part is ToolPart {
+  return part.type.startsWith("tool-") || part.type === "dynamic-tool"
+}
+
+// Type for tool parts
+type ToolPart = {
+  type: string
+  toolCallId: string
+  toolName?: string // for dynamic-tool
+  state: "input-streaming" | "input-available" | "result" | "error"
+  input?: unknown
+  output?: unknown
+  errorText?: string
+}
+
+// Component to render a tool call
+function ToolCall({ part }: { part: ToolPart }) {
+  // Extract tool name from type (e.g., "tool-get_project_info" -> "get_project_info")
+  const toolName = part.type === "dynamic-tool"
+    ? part.toolName
+    : part.type.replace("tool-", "")
+
+  const isComplete = part.state === "result"
+  const isError = part.state === "error"
+  const isLoading = part.state === "input-streaming" || part.state === "input-available"
+
+  return (
+    <div className="my-2 rounded-lg border bg-muted/50 p-3 text-sm">
+      <div className="flex items-center gap-2 font-medium">
+        {isLoading && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
+        {isComplete && <CheckCircle className="size-4 text-green-500" />}
+        {isError && <span className="size-4 text-red-500">!</span>}
+        <Wrench className="size-4" />
+        <span>{toolName}</span>
+      </div>
+      {part.input && (
+        <details className="mt-2">
+          <summary className="cursor-pointer text-xs text-muted-foreground">Input</summary>
+          <pre className="mt-1 overflow-auto rounded bg-background p-2 text-xs">
+            {JSON.stringify(part.input, null, 2)}
+          </pre>
+        </details>
+      )}
+      {part.output && (
+        <details className="mt-2" open>
+          <summary className="cursor-pointer text-xs text-muted-foreground">Output</summary>
+          <pre className="mt-1 overflow-auto rounded bg-background p-2 text-xs">
+            {JSON.stringify(part.output, null, 2)}
+          </pre>
+        </details>
+      )}
+      {part.errorText && (
+        <div className="mt-2 text-xs text-red-500">{part.errorText}</div>
+      )}
+    </div>
+  )
+}
 
 function App() {
-  const { messages, handleSubmit, status, input, setInput } = useChat({
+  const { messages, sendMessage, status } = useChat({
     api: "/api/chat",
   })
+  const [input, setInput] = useState("")
 
   const isLoading = status === "streaming" || status === "submitted"
 
@@ -42,17 +103,32 @@ function App() {
                 icon={<MessageCircle className="size-8" />}
               />
             ) : (
-              messages.map((message) => (
-                <Message key={message.id} from={message.role}>
-                  <MessageContent>
-                    {message.role === "assistant" ? (
-                      <MessageResponse>{message.content}</MessageResponse>
-                    ) : (
-                      <p className="whitespace-pre-wrap">{message.content}</p>
-                    )}
-                  </MessageContent>
-                </Message>
-              ))
+              messages.map((message) => {
+                return (
+                  <Message key={message.id} from={message.role}>
+                    <MessageContent>
+                      {message.parts?.map((part, index) => {
+                        // Render text parts
+                        if (part.type === "text") {
+                          const textPart = part as { type: "text"; text: string }
+                          return message.role === "assistant" ? (
+                            <MessageResponse key={index}>{textPart.text}</MessageResponse>
+                          ) : (
+                            <p key={index} className="whitespace-pre-wrap">{textPart.text}</p>
+                          )
+                        }
+
+                        // Render tool parts
+                        if (isToolPart(part)) {
+                          return <ToolCall key={index} part={part as ToolPart} />
+                        }
+
+                        return null
+                      })}
+                    </MessageContent>
+                  </Message>
+                )
+              })
             )}
             {isLoading && messages[messages.length - 1]?.role === "user" && (
               <Message from="assistant">
@@ -67,8 +143,11 @@ function App() {
 
         <div className="p-4 border-t">
           <PromptInput
-            onSubmit={({ text }, event) => {
-              handleSubmit(event, { data: { message: text } })
+            onSubmit={({ text }) => {
+              if (text.trim()) {
+                sendMessage({ text })
+                setInput("")
+              }
             }}
           >
             <PromptInputTextarea
