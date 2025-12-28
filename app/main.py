@@ -1,48 +1,48 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.chat import router as chat_router
+from app.mcp_server import mcp
+
+# Create MCP ASGI app
+mcp_app = mcp.http_app(path="/mcp")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Combined lifespan for FastAPI and MCP."""
+    async with mcp_app.lifespan(app):
+        yield
+
+
 app = FastAPI(
-    title="Claude Code Dev Starter",
-    description="A basic FastAPI web server",
-    version="0.1.0",
+    title="Claude Code Dev Starter API",
+    lifespan=lifespan,
 )
 
-# Add CORS middleware
+# CORS for frontend dev server
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Mount MCP server
+app.mount("/mcp", mcp_app)
+
+# Include chat router
+app.include_router(chat_router)
+
 
 @app.get("/")
 async def root():
-    """Root endpoint"""
-    return {
-        "message": "Welcome to Claude Code Dev Starter",
-        "docs_url": "/docs",
-    }
+    return {"message": "Claude Code Dev Starter API"}
 
 
 @app.get("/health")
-async def health_check():
-    """Health check endpoint"""
+async def health():
     return {"status": "healthy"}
-
-
-@app.get("/users/{user_id}")
-async def get_user(user_id: int):
-    """Get a user by ID"""
-    return {"user_id": user_id, "name": "John Doe"}
-
-
-if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run(
-        app,
-        host="0.0.0.0",
-        port=8000,
-    )

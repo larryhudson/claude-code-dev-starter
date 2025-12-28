@@ -29,3 +29,11 @@ build/
 .Spotlight-V100
 .Trashes
 ehthumbs.db
+
+# Environment files
+.env
+.env.local
+
+# Frontend
+frontend/node_modules/
+frontend/dist/

@@ -14,6 +14,8 @@ repos:
       - id: check-added-large-files
         args: ['--maxkb=1000']
       - id: check-json
+        # Exclude tsconfig files (they use JSONC with comments)
+        exclude: 'tsconfig.*\.json$'
       - id: check-merge-conflict
 
   # Python linting with ruff

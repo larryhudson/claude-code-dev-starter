@@ -25,3 +25,9 @@ checks:
     patterns: ['*.py']
     command: 'uv run ty check {file}'
     enabled: true
+
+  # Lint frontend files with oxlint
+  - name: lint-frontend
+    patterns: ['frontend/**/*.ts', 'frontend/**/*.tsx']
+    command: 'cd frontend && npx oxlint {file}'
+    enabled: true

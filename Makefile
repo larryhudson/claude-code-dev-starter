@@ -1,16 +1,20 @@
-.PHONY: dev dev-logs lint-file lint format type-check help
+.PHONY: dev dev-logs lint-file lint format type-check help frontend-install frontend-dev frontend-build frontend-lint
 
 PIDFILE := .dev.pid
 DEV_LOG := dev.log
 
 help:
 	@echo "Available commands:"
-	@echo "  make dev         - Start development server using hivemind"
-	@echo "  make dev-logs    - View development logs"
-	@echo "  make lint        - Lint Python files with ruff"
-	@echo "  make format      - Format Python files with ruff"
-	@echo "  make type-check  - Run type checking with ty"
-	@echo "  make lint-file   - Lint and format a single file (usage: make lint-file FILE=path/to/file)"
+	@echo "  make dev              - Start development server using hivemind"
+	@echo "  make dev-logs         - View development logs"
+	@echo "  make lint             - Lint Python files with ruff"
+	@echo "  make format           - Format Python files with ruff"
+	@echo "  make type-check       - Run type checking with ty"
+	@echo "  make lint-file        - Lint and format a single file (usage: make lint-file FILE=path/to/file)"
+	@echo "  make frontend-install - Install frontend dependencies"
+	@echo "  make frontend-dev     - Start frontend dev server"
+	@echo "  make frontend-build   - Build frontend for production"
+	@echo "  make frontend-lint    - Lint frontend files"
 
 dev:
 	@if [ -f $(PIDFILE) ] && kill -0 $$(cat $(PIDFILE)) 2>/dev/null; then \
@@ -60,6 +64,19 @@ lint-file:
 	@echo "Linting and formatting: $(FILE)"
 	@uv run ruff check --fix $(FILE)
 	@uv run ruff format $(FILE)
+
+# Frontend commands
+frontend-install:
+	cd frontend && npm install
+
+frontend-dev:
+	cd frontend && npm run dev
+
+frontend-build:
+	cd frontend && npm run build
+
+frontend-lint:
+	cd frontend && npm run lint
 
 .PHONY: stop-dev
 stop-dev:
