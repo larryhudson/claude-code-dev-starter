@@ -1,0 +1,88 @@
+# Tool Usage Evaluation Dataset
+# Tests whether the agent correctly uses MCP tools
+
+cases:
+  # Should use get_project_info tool
+  - name: project_info_query
+    inputs:
+      user_message: "What technologies does this project use?"
+    metadata:
+      difficulty: easy
+      expected_behavior: should_use_tool
+      expected_tool: get_project_info
+
+  - name: project_name_query
+    inputs:
+      user_message: "What is the name of this project?"
+    metadata:
+      difficulty: easy
+      expected_behavior: should_use_tool
+      expected_tool: get_project_info
+
+  - name: tech_stack_query
+    inputs:
+      user_message: "What's in the tech stack for this project?"
+    metadata:
+      difficulty: easy
+      expected_behavior: should_use_tool
+      expected_tool: get_project_info
+
+  # Should use list_available_commands tool
+  - name: commands_query
+    inputs:
+      user_message: "How do I start the development server?"
+    metadata:
+      difficulty: easy
+      expected_behavior: should_use_tool
+      expected_tool: list_available_commands
+
+  - name: lint_command_query
+    inputs:
+      user_message: "What command do I run to lint my code?"
+    metadata:
+      difficulty: easy
+      expected_behavior: should_use_tool
+      expected_tool: list_available_commands
+
+  - name: available_make_commands
+    inputs:
+      user_message: "What make commands are available?"
+    metadata:
+      difficulty: easy
+      expected_behavior: should_use_tool
+      expected_tool: list_available_commands
+
+  # Should NOT use tools (general knowledge)
+  - name: general_python_question
+    inputs:
+      user_message: "What is a Python decorator?"
+    metadata:
+      difficulty: easy
+      expected_behavior: should_not_use_tool
+
+  - name: general_coding_question
+    inputs:
+      user_message: "How do I write a for loop in JavaScript?"
+    metadata:
+      difficulty: easy
+      expected_behavior: should_not_use_tool
+
+  - name: general_concept_question
+    inputs:
+      user_message: "What is the difference between REST and GraphQL?"
+    metadata:
+      difficulty: easy
+      expected_behavior: should_not_use_tool
+
+  - name: general_best_practices
+    inputs:
+      user_message: "What are some best practices for writing clean code?"
+    metadata:
+      difficulty: easy
+      expected_behavior: should_not_use_tool
+
+evaluators:
+  - LLMJudge:
+      rubric: "Response is helpful and accurately answers the user's question"
+      include_input: true
+      model: "anthropic:claude-sonnet-4-20250514"

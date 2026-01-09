@@ -9,6 +9,7 @@ dependencies = [
     "uvicorn[standard]>=0.38.0",
     "fastmcp>=2.0.0",
     "pydantic-ai>=0.2.0",
+    "pydantic-evals>=0.1.0",
 ]
 
 [tool.ruff]
@@ -39,7 +40,10 @@ known-first-party = ["main"]
 [dependency-groups]
 dev = [
     "pre-commit>=4.0.0",
+    "python-dotenv>=1.0.0",
     "pyyaml>=6.0.3",
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.25.0",
     "ruff>=0.14.2",
     "ty>=0.0.1a24",
 ]
