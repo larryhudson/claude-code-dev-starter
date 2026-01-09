@@ -48,32 +48,36 @@ function ToolCall({ part }: { part: ToolPart }) {
   const isLoading = part.state === "input-streaming" || part.state === "input-available"
 
   return (
-    <div className="my-2 rounded-lg border bg-muted/50 p-3 text-sm">
+    <div className={`my-2 rounded-lg border p-3 text-sm transition-colors ${
+      isComplete ? 'bg-primary/5 border-primary/20' :
+      isError ? 'bg-destructive/5 border-destructive/20' :
+      'bg-muted/50 border-border'
+    }`}>
       <div className="flex items-center gap-2 font-medium">
-        {isLoading && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
-        {isComplete && <CheckCircle className="size-4 text-green-500" />}
-        {isError && <span className="size-4 text-red-500">!</span>}
-        <Wrench className="size-4" />
+        {isLoading && <Loader2 className="size-4 animate-spin text-primary" />}
+        {isComplete && <CheckCircle className="size-4 text-primary" />}
+        {isError && <span className="size-4 text-destructive font-bold">!</span>}
+        <Wrench className={`size-4 ${isComplete ? 'text-primary' : ''}`} />
         <span>{toolName}</span>
       </div>
       {part.input && (
         <details className="mt-2">
-          <summary className="cursor-pointer text-xs text-muted-foreground">Input</summary>
-          <pre className="mt-1 overflow-auto rounded bg-background p-2 text-xs">
+          <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground transition-colors">Input</summary>
+          <pre className="mt-1 overflow-auto rounded bg-background p-2 text-xs border border-border/50">
             {JSON.stringify(part.input, null, 2)}
           </pre>
         </details>
       )}
       {part.output && (
         <details className="mt-2" open>
-          <summary className="cursor-pointer text-xs text-muted-foreground">Output</summary>
-          <pre className="mt-1 overflow-auto rounded bg-background p-2 text-xs">
+          <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground transition-colors">Output</summary>
+          <pre className="mt-1 overflow-auto rounded bg-background p-2 text-xs border border-border/50">
             {JSON.stringify(part.output, null, 2)}
           </pre>
         </details>
       )}
       {part.errorText && (
-        <div className="mt-2 text-xs text-red-500">{part.errorText}</div>
+        <div className="mt-2 text-xs text-destructive">{part.errorText}</div>
       )}
     </div>
   )
@@ -88,10 +92,13 @@ function App() {
   const isLoading = status === "streaming" || status === "submitted"
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="flex flex-col h-[600px] w-full max-w-2xl">
-        <div className="p-4 border-b">
-          <h2 className="text-lg font-semibold">Chat</h2>
+    <div className="min-h-screen bg-gradient-to-b from-primary/5 to-background flex items-center justify-center p-4">
+      <Card className="flex flex-col h-[600px] w-full max-w-2xl shadow-xl border-border/50 rounded-2xl overflow-hidden">
+        <div className="px-5 py-4 border-b bg-card">
+          <h2 className="text-lg font-semibold text-primary flex items-center gap-2">
+            <MessageCircle className="size-5" />
+            Chat
+          </h2>
         </div>
 
         <Conversation className="flex-1">
@@ -133,7 +140,10 @@ function App() {
             {isLoading && messages[messages.length - 1]?.role === "user" && (
               <Message from="assistant">
                 <MessageContent>
-                  <p className="text-muted-foreground">Thinking...</p>
+                  <div className="flex items-center gap-2 text-primary">
+                    <Loader2 className="size-4 animate-spin" />
+                    <span>Thinking...</span>
+                  </div>
                 </MessageContent>
               </Message>
             )}
@@ -141,7 +151,7 @@ function App() {
           <ConversationScrollButton />
         </Conversation>
 
-        <div className="p-4 border-t">
+        <div className="p-4 border-t bg-card">
           <PromptInput
             onSubmit={({ text }) => {
               if (text.trim()) {

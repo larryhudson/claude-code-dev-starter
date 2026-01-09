@@ -56,9 +56,9 @@ export const ConversationEmptyState = ({
   >
     {children ?? (
       <>
-        {icon && <div className="text-muted-foreground">{icon}</div>}
+        {icon && <div className="text-primary/60">{icon}</div>}
         <div className="space-y-1">
-          <h3 className="font-medium text-sm">{title}</h3>
+          <h3 className="font-medium text-sm text-foreground">{title}</h3>
           {description && (
             <p className="text-muted-foreground text-sm">{description}</p>
           )}
@@ -84,13 +84,13 @@ export const ConversationScrollButton = ({
     !isAtBottom && (
       <Button
         className={cn(
-          "absolute bottom-4 left-[50%] translate-x-[-50%] rounded-full",
+          "absolute bottom-4 left-[50%] translate-x-[-50%] rounded-full shadow-lg",
+          "bg-primary text-primary-foreground hover:bg-primary/90",
           className
         )}
         onClick={handleScrollToBottom}
         size="icon"
         type="button"
-        variant="outline"
         {...props}
       >
         <ArrowDownIcon className="size-4" />

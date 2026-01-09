@@ -1,4 +1,4 @@
-.PHONY: dev dev-logs lint-file lint format type-check help frontend-install frontend-dev frontend-build frontend-lint
+.PHONY: dev dev-logs lint-file lint format type-check help frontend-install frontend-dev frontend-build frontend-lint eval eval-quick eval-report
 
 PIDFILE := .dev.pid
 DEV_LOG := dev.log
@@ -15,6 +15,9 @@ help:
 	@echo "  make frontend-dev     - Start frontend dev server"
 	@echo "  make frontend-build   - Build frontend for production"
 	@echo "  make frontend-lint    - Lint frontend files"
+	@echo "  make eval             - Run agent evaluations"
+	@echo "  make eval-quick       - Run quick evaluations (excludes slow tests)"
+	@echo "  make eval-report      - Run evaluations and save report"
 
 dev:
 	@if [ -f $(PIDFILE) ] && kill -0 $$(cat $(PIDFILE)) 2>/dev/null; then \
@@ -87,3 +90,17 @@ stop-dev:
 	else \
 		echo "No dev server running"; \
 	fi
+
+# Evaluations
+eval:
+	@echo "Running agent evaluations..."
+	@uv run pytest evals/ -v
+
+eval-quick:
+	@echo "Running quick evaluations..."
+	@uv run pytest evals/ -v -k "not slow" --tb=short
+
+eval-report:
+	@echo "Running evaluations with report..."
+	@uv run pytest evals/ -v --tb=long 2>&1 | tee eval-report.txt
+	@echo "Report saved to eval-report.txt"
