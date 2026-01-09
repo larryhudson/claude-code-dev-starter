@@ -1,3 +1,4 @@
+---
 # Pre-commit configuration for this project
 # Install pre-commit: pip install pre-commit
 # Set up hooks: pre-commit install

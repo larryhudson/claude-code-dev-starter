@@ -1,9 +1,9 @@
 ---
 name: CI
 
-on:
-  push: true
-  pull_request: true
+"on":
+  push:
+  pull_request:
 
 jobs:
   python-lint:
@@ -35,7 +35,33 @@ jobs:
         run: uv run ty check .
         continue-on-error: true
 
-  # Uncomment to use pre-commit for additional checks
+  # Agent evaluations - runs after linting passes
+  eval:
+    runs-on: ubuntu-latest
+    needs: [python-lint]
+    # Only run if ANTHROPIC_API_KEY secret is configured
+    if: ${{ vars.RUN_EVALS == 'true' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: 'pyproject.toml'
+
+      - name: Install dependencies
+        run: uv sync --all-groups
+
+      - name: Run evaluations
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: uv run pytest evals/ -v --tb=short
+
+    # Uncomment to use pre-commit for additional checks
   # pre-commit:
   #   runs-on: ubuntu-latest
   #   steps:
