@@ -1,77 +1,51 @@
-# Claude Code Dev Starter Template
+# Claude Code Dev Starter
 
-A production-ready Python template for setting up new projects optimized for working with [Claude Code](https://docs.claude.com/en/docs/claude-code/). This template includes development tools, linting hooks, CI/CD pipelines, and Claude Code integrations to streamline your development workflow.
+A production-ready full-stack template for building AI-powered applications optimized for [Claude Code](https://docs.claude.com/en/docs/claude-code/). This template combines a FastAPI backend with a React frontend, featuring an AI chat interface, MCP tool integration, automated code quality checks, and an agent evaluation framework.
 
-## What's Included
+## Features
 
-### Development Setup
+- **AI Chat Interface**: Real-time chat with a Claude-powered agent via Pydantic AI
+- **MCP Tool Server**: FastMCP server exposing project information and commands as tools
+- **Full-Stack Architecture**: FastAPI backend + React/TypeScript frontend
+- **Post-Edit Automation**: Automatic linting, formatting, and type-checking after Claude modifies files
+- **Agent Evaluations**: Pydantic-evals framework for testing agent behavior
+- **CI/CD Pipeline**: GitHub Actions for linting, type-checking, and evaluations
 
-- **Makefile**: Convenient commands for managing your Python development environment
-  - `make dev`: Start FastAPI development server using hivemind with process management
-  - `make dev-logs`: View and tail development logs (with ANSI codes stripped for readability)
-  - `make lint`: Lint Python files with ruff
-  - `make format`: Format Python files with ruff
-  - `make type-check`: Type check Python files with ty
-  - `make stop-dev`: Stop the running development server
+## Tech Stack
 
-- **Procfile**: Configuration file for hivemind to manage development processes
-  - FastAPI development server with auto-reload using `uv run fastapi dev`
-  - Can be extended with additional processes
+### Backend
+- **FastAPI 0.120+** - Modern async Python web framework
+- **Pydantic AI 0.2+** - AI agent framework with tool integration
+- **FastMCP 2.0+** - Model Context Protocol server for exposing tools
+- **Uvicorn** - ASGI application server
+- **Python 3.12+**
 
-- **pyproject.toml**: Python project configuration
-  - FastAPI and Uvicorn dependencies
-  - Development dependencies (ruff, ty, pyyaml)
-  - Ruff linting and formatting configuration
+### Frontend
+- **React 19** - Latest React with hooks
+- **TypeScript 5.9+** - Static typing
+- **Vite** - Fast build tool and dev server
+- **Tailwind CSS 4** - Utility-first styling
+- **Radix UI** - Accessible component primitives
+- **AI SDK React** - Integration with AI chat protocols
+- **Lucide React** - Icon library
 
-- **uv**: Fast Python package manager for dependency management
-  - Replaces pip/venv for faster, more reliable dependency resolution
+### Quality & Testing
+- **Ruff** - Fast Python linter and formatter
+- **Ty** - Python type checker
+- **Pytest** - Testing framework
+- **Pydantic Evals** - Agent evaluation framework
+- **Pre-commit** - Git hooks for code quality
+- **ESLint/Oxlint** - Frontend linting
 
-### Claude Code Integration
-
-- **Hook Configuration** (`.claude/settings.json`): Registers hooks with Claude Code
-  - PostToolUse hook runs on Write/Edit tools with 30-second timeout
-  - SessionStart hook runs on session initialization with 60-second timeout
-
-- **PostToolUse Hook** (`.claude/hooks/post-tool-use.py`): Python script that automatically runs checks after Claude modifies files
-  - Reads configuration from `.post-claude-edit-config.yaml`
-  - Matches modified files against glob patterns
-  - Runs configured commands with proper substitution (`{file}`, `{dir}`)
-  - Returns structured JSON feedback to Claude Code
-  - Automatically lints, formats, and type-checks Python files after edits
-
-- **Post-Claude-Edit Configuration** (`.post-claude-edit-config.yaml`): Defines what checks run after edits
-  - Pattern-based file matching (e.g., `*.py`)
-  - Flexible command configuration for Python tooling
-  - Enable/disable checks without removing them
-  - Includes ruff linting, formatting, and ty type-checking
-
-- **SessionStart Hook** (`.claude/hooks/session-start.sh`): Runs when a Claude Code session starts
-  - Checks for required development tools (hivemind, jq, uv, python)
-  - Installs Python dependencies if needed
-  - Provides helpful context about available commands
-
-### Code Quality
-
-- **.pre-commit-config.yaml**: Pre-commit hooks for automated code quality checks
-  - Trailing whitespace removal
-  - End-of-file fixing
-  - YAML validation
-  - Large file detection
-  - JSON validation
-  - Merge conflict detection
-  - Optional: ESLint configuration (commented out for flexibility)
-
-### CI/CD
-
-- **.github/workflows/ci.yaml**: GitHub Actions workflow for automated testing and linting
-  - Runs on push to main/develop branches and pull requests
-  - Lint job: Checks Python code style with ruff
-  - Type-check job: Validates Python types with ty
-  - Python 3.12+ environment with uv caching
+### DevOps
+- **GitHub Actions** - CI/CD pipeline
+- **Hivemind** - Process manager for running multiple services
+- **uv** - Fast Python package manager
+- **npm** - Node package manager
 
 ## Getting Started
 
-### 1. Installation
+### Prerequisites
 
 ```bash
 # Install uv (Python package manager)
@@ -85,90 +59,36 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 # On macOS
 brew install hivemind
 
-# On Linux
-# Follow instructions at https://github.com/DarthSim/hivemind
+# On Linux - see https://github.com/DarthSim/hivemind
 
-# Install pre-commit framework
-pip install pre-commit
+# Install Node.js (for frontend)
+# On macOS
+brew install node
 
-# Set up pre-commit hooks
-pre-commit install
-
-# Install Python dependencies via uv
-uv sync
+# On Linux - see https://nodejs.org/
 ```
 
-### 2. Configure Your Project
-
-1. Update `pyproject.toml` with your project's dependencies:
-   ```toml
-   [project]
-   name = "my-project"
-   dependencies = [
-       "fastapi[standard]>=0.120.0",
-       "uvicorn[standard]>=0.38.0",
-       "sqlalchemy>=2.0.0",  # Add as needed
-   ]
-
-   [dependency-groups]
-   dev = [
-       "pytest>=7.0.0",
-       "pytest-cov>=4.0.0",
-   ]
-   ```
-
-2. Update `Procfile` with your project's development commands:
-   ```
-   web: uv run fastapi dev app/main.py
-   tests: uv run pytest --watch
-   ```
-
-3. Update `.post-claude-edit-config.yaml` with checks you want to run:
-   ```yaml
-   checks:
-     - name: lint-python
-       patterns: ['*.py']
-       command: 'uv run ruff check --fix {file}'
-       enabled: true
-     - name: my-custom-check
-       patterns: ['app/**/*.py']
-       command: 'uv run pytest {file}'
-       enabled: false
-   ```
-   - Add custom checks for your project
-   - Use `{file}` placeholder for the modified file path
-   - Set `enabled: false` to disable checks temporarily
-
-4. Update `.pre-commit-config.yaml` with hooks relevant to your project:
-   - Add additional hooks for Python linting beyond ruff if desired
-
-5. Update `.github/workflows/ci.yaml` with your actual test commands:
-   - Ensure `uv run ruff check`, `uv run ty check`, and `uv run pytest` work
-   - Or adjust the commands to match your project
-
-### 3. Claude Code Configuration
-
-The Claude Code hooks are already configured in `.claude/settings.json`. The configuration includes:
-
-- **PostToolUse Hook**: Automatically runs checks after Write/Edit tools
-  - Triggered when Claude modifies files
-  - Runs matching checks from `.post-claude-edit-config.yaml`
-  - 30-second timeout per command
-
-- **SessionStart Hook**: Prepares development environment
-  - Checks for required tools
-  - Installs dependencies
-  - Provides context about available commands
-  - 60-second timeout
-
-No additional configuration needed—the hooks will run automatically in Claude Code!
-
-## Usage Examples
-
-### Starting Development
+### Installation
 
 ```bash
-# Start all processes defined in Procfile
+# Clone the repository
+git clone https://github.com/larryhudson/claude-code-dev-starter.git
+cd claude-code-dev-starter
+
+# Install Python dependencies
+uv sync
+
+# Install frontend dependencies
+cd frontend && npm install && cd ..
+
+# Set up pre-commit hooks
+uv run pre-commit install
+```
+
+### Running the Application
+
+```bash
+# Start both backend and frontend (uses hivemind)
 make dev
 
 # In another terminal, view live logs
@@ -178,214 +98,193 @@ make dev-logs
 make stop-dev
 ```
 
-### Working with Claude Code
+The application will be available at:
+- **Frontend**: http://localhost:5173
+- **Backend API**: http://localhost:8000
+- **API Docs**: http://localhost:8000/docs
 
-1. **Edit a file**: Claude modifies `app/main.py`
-2. **Automatic formatting**: The PostToolUse hook runs linting, formatting, and type-checking
-3. **Result**: File is automatically linted, formatted, and type-checked
-
-### Manual Linting and Type Checking
-
-```bash
-# Lint all Python files
-make lint
-
-# Format all Python files
-make format
-
-# Type check all Python files
-make type-check
-
-# Or use the tools directly
-uv run ruff check --fix .
-uv run ruff format .
-uv run ty check .
-```
-
-### Running Tests
-
-```bash
-# Run tests with pytest
-uv run pytest
-
-# Run tests with coverage
-uv run pytest --cov=app
-```
-
-### Running Pre-commit Checks
-
-```bash
-# Run all pre-commit checks on staged files
-pre-commit run
-
-# Run all pre-commit checks on all files
-pre-commit run --all-files
-
-# Update hook versions
-pre-commit autoupdate
-```
-
-## File Structure
+## Project Structure
 
 ```
 .
-├── .claude/
-│   ├── settings.json              # Claude Code hook configuration
+├── .claude/                          # Claude Code integration
+│   ├── settings.json                 # Permissions and hook configuration
 │   └── hooks/
-│       ├── post-tool-use.py       # Python script for post-edit checks
-│       └── session-start.sh        # Bash script for session setup
-├── .github/
-│   └── workflows/
-│       └── ci.yaml                # GitHub Actions CI/CD pipeline
-├── app/
-│   ├── __init__.py               # App package
-│   └── main.py                    # FastAPI application entry point
-├── tests/                         # Test directory (add pytest tests here)
-├── .post-claude-edit-config.yaml   # Post-edit checks configuration
-├── .pre-commit-config.yaml         # Pre-commit hook configuration
-├── Makefile                        # Development commands
-├── Procfile                        # Process definitions for hivemind
-├── pyproject.toml                  # Python project configuration and dependencies
-├── uv.lock                         # Locked dependencies (managed by uv)
-└── README.md                       # This file
+│       ├── post-tool-use.py          # Auto-runs checks after file edits
+│       └── session-start.sh          # Session initialization
+│
+├── app/                              # FastAPI backend
+│   ├── main.py                       # FastAPI app with MCP mounting
+│   ├── chat.py                       # Chat endpoint with Vercel AI adapter
+│   ├── agent.py                      # Pydantic AI agent definition
+│   └── mcp_server.py                 # FastMCP tool definitions
+│
+├── frontend/                         # React application
+│   ├── src/
+│   │   ├── App.tsx                   # Main chat interface
+│   │   ├── components/
+│   │   │   ├── ai-elements/          # Chat UI components
+│   │   │   └── ui/                   # Reusable UI components
+│   │   └── main.tsx                  # React entry point
+│   ├── package.json                  # Frontend dependencies
+│   └── vite.config.ts                # Build configuration
+│
+├── evals/                            # Agent evaluation framework
+│   ├── test_evals.py                 # Pytest test entry point
+│   ├── tasks/
+│   │   └── agent_task.py             # Agent execution wrapper
+│   ├── graders/
+│   │   ├── code_based.py             # Deterministic evaluators
+│   │   └── llm_based.py              # LLM-based judges
+│   ├── datasets/
+│   │   └── tool_usage.yaml           # Test case definitions
+│   └── README.md                     # Evaluation guide
+│
+├── .github/workflows/                # CI/CD automation
+│   └── ci.yaml                       # GitHub Actions pipeline
+│
+├── .post-claude-edit-config.yaml     # Post-edit check configuration
+├── .pre-commit-config.yaml           # Pre-commit hook configuration
+├── Makefile                          # Development commands
+├── Procfile                          # Hivemind process definitions
+├── pyproject.toml                    # Python project config
+├── CLAUDE.md                         # Claude Code guidelines
+└── AGENTS.md                         # Agent workflow instructions
 ```
+
+## Development Commands
+
+### General
+
+```bash
+make dev          # Start backend and frontend
+make dev-logs     # View live development logs
+make stop-dev     # Stop the development server
+```
+
+### Python
+
+```bash
+make lint         # Lint Python files with ruff
+make format       # Format Python files with ruff
+make type-check   # Type check with ty
+uv run pytest     # Run tests
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm run dev       # Start frontend dev server
+npm run build     # Build for production
+npm run lint      # Lint TypeScript files
+```
+
+### Evaluations
+
+```bash
+make evals        # Run agent evaluations
+make evals-report # Run evals with detailed report
+```
+
+## Claude Code Integration
+
+### Hooks
+
+The project includes hooks that integrate with Claude Code:
+
+- **PostToolUse Hook**: Automatically runs after Claude modifies files
+  - Lints and formats Python files with ruff
+  - Type-checks with ty
+  - Configured in `.post-claude-edit-config.yaml`
+
+- **SessionStart Hook**: Runs when a Claude Code session starts
+  - Checks for required tools
+  - Installs dependencies if needed
+  - Provides context about available commands
+
+### MCP Tools
+
+The FastMCP server exposes tools that the AI agent can use:
+
+- `get_project_info()` - Returns project metadata
+- `list_available_commands()` - Returns available make commands
+
+Extend `app/mcp_server.py` to add custom tools.
+
+## Agent Evaluations
+
+The `evals/` directory contains a framework for testing agent behavior:
+
+```bash
+# Run all evaluations
+make evals
+
+# Run with detailed report
+make evals-report
+
+# Run specific tests
+uv run pytest evals/ -k "tool_usage"
+```
+
+See [evals/README.md](evals/README.md) for detailed documentation.
 
 ## Customization
 
-### Adding Post-Claude-Edit Checks
+### Adding MCP Tools
 
-Edit `.post-claude-edit-config.yaml` to add or modify checks:
+Edit `app/mcp_server.py` to add new tools:
+
+```python
+@mcp.tool()
+def my_custom_tool(param: str) -> str:
+    """Description of what this tool does."""
+    return f"Result: {param}"
+```
+
+### Adding Post-Edit Checks
+
+Edit `.post-claude-edit-config.yaml`:
 
 ```yaml
 checks:
-  - name: lint-python
+  - name: my-check
     patterns: ['*.py']
-    command: 'uv run ruff check --fix {file}'
+    command: 'uv run my-check {file}'
     enabled: true
-
-  - name: format-python
-    patterns: ['*.py']
-    command: 'uv run ruff format {file}'
-    enabled: true
-
-  - name: test-file
-    patterns: ['tests/**/*.py']
-    command: 'uv run pytest {file}'
-    enabled: false  # Disabled for now
 ```
-
-- **patterns**: Glob patterns to match file paths (fnmatch style)
-- **command**: Command to execute (use `{file}` for file path, `{dir}` for directory)
-- **enabled**: Toggle without deleting the check
 
 ### Adding Dependencies
 
-Edit `pyproject.toml` to add new dependencies:
-
-```toml
-[project]
-dependencies = [
-    "fastapi[standard]>=0.120.0",
-    "sqlalchemy>=2.0.0",  # Add your dependency
-]
-
-[dependency-groups]
-dev = [
-    "pytest>=7.0.0",
-    "black>=23.0.0",  # Add dev tools
-]
-```
-
-Then run `uv sync` to update your environment.
-
-### Adding More Make Targets
-
-Edit `Makefile` to add custom targets:
-
-```makefile
-test:
-	uv run pytest
-
-deploy:
-	uv run fastapi run app/main.py
-```
-
-### Adding More Processes
-
-Edit `Procfile` to add or remove processes:
-
-```procfile
-web: uv run fastapi dev app/main.py
-api: uv run python scripts/background_worker.py
-tests: uv run pytest --watch
-```
-
-### Extending Pre-commit Hooks
-
-Uncomment or add hooks to `.pre-commit-config.yaml`:
-
-```yaml
-- repo: https://github.com/your-org/custom-hooks
-  rev: v1.0.0
-  hooks:
-    - id: custom-check
-```
-
-### Customizing Hook Timeouts
-
-Edit `.claude/settings.json` to adjust hook timeouts:
-
-```json
-{
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/post-tool-use.py",
-            "timeout": 60
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-Increase timeout if your checks take longer to run.
-
-## Troubleshooting
-
-### Dev server already running
-
-If you see "Dev server is already running", you can either:
-- Run `make stop-dev` to stop the existing server
-- Check the `.dev.pid` file to see the PID
-
-### Hooks not executing
-
-Ensure hooks are executable:
+Python (edit `pyproject.toml`):
 ```bash
-chmod +x .claude/hooks/*.sh
+uv add package-name
+uv add --dev dev-package-name
 ```
 
-### Pre-commit issues
-
-Update pre-commit and hooks:
+Frontend (in `frontend/` directory):
 ```bash
-pre-commit clean
-pre-commit autoupdate
-pre-commit run --all-files
+npm install package-name
+npm install --save-dev dev-package-name
 ```
+
+## CI/CD
+
+The GitHub Actions workflow (`.github/workflows/ci.yaml`) runs:
+
+1. **Lint**: Python code style with ruff
+2. **Type-check**: Python types with ty
+3. **Evaluations**: Agent behavior tests with pydantic-evals
+
+Triggered on pushes to main/develop and pull requests.
 
 ## Learn More
 
 - [Claude Code Documentation](https://docs.claude.com/en/docs/claude-code/)
-- [Hivemind Documentation](https://github.com/DarthSim/hivemind)
-- [Pre-commit Framework](https://pre-commit.com/)
-- [GitHub Actions Documentation](https://docs.github.com/en/actions)
+- [Pydantic AI](https://ai.pydantic.dev/)
+- [FastMCP](https://github.com/jlowin/fastmcp)
+- [Vercel AI SDK](https://sdk.vercel.ai/)
+- [Hivemind](https://github.com/DarthSim/hivemind)
 
 ## License
 
