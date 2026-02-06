@@ -35,7 +35,6 @@ import { createHash } from "crypto";
 
 const PROJECT_DIR =
   process.env.CLAUDE_PROJECT_DIR || process.argv[2] || process.cwd();
-const FRONTEND_DIR = join(PROJECT_DIR, "frontend");
 
 // Derive a stable socket path from the project dir (keeps path short for Unix socket limit)
 const dirHash = createHash("md5")
@@ -65,6 +64,89 @@ function log(level, msg) {
     process.stderr.write(line);
   }
 }
+
+// ---------------------------------------------------------------------------
+// YAML Config Loading
+// ---------------------------------------------------------------------------
+
+const CONFIG_PATH = join(STATE_DIR, "lsp-servers.yaml");
+
+function loadConfig() {
+  if (!existsSync(CONFIG_PATH)) {
+    log("ERROR", `Config file not found: ${CONFIG_PATH}`);
+    process.exit(1);
+  }
+
+  // Use the project venv Python (has PyYAML) or fall back to system Python
+  const venvPython = join(PROJECT_DIR, ".venv", "bin", "python3");
+  const pythonBin = existsSync(venvPython) ? venvPython : "python3";
+
+  try {
+    const json = execSync(
+      `${pythonBin} -c "import yaml, json, sys; print(json.dumps(yaml.safe_load(open(sys.argv[1]))))" "${CONFIG_PATH}"`,
+      { encoding: "utf-8", timeout: 5000 },
+    );
+    return JSON.parse(json);
+  } catch (err) {
+    log("ERROR", `Failed to load config (is PyYAML installed?): ${err.message}`);
+    process.exit(1);
+  }
+}
+
+/**
+ * Resolve a server command by checking search paths, then $PATH.
+ */
+function resolveCommand(serverConfig) {
+  for (const searchPath of serverConfig.search || []) {
+    const absPath = join(PROJECT_DIR, searchPath);
+    if (existsSync(absPath)) return absPath;
+  }
+  // Fall back to $PATH
+  try {
+    return execSync(`which ${serverConfig.command}`, { encoding: "utf-8" }).trim();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Check that all required files exist.
+ */
+function checkRequirements(serverConfig) {
+  for (const req of serverConfig.requires || []) {
+    if (!existsSync(join(PROJECT_DIR, req))) return false;
+  }
+  return true;
+}
+
+/**
+ * Interpolate ${PROJECT_DIR} and ${PATH} in env values.
+ */
+function interpolateEnv(env) {
+  const result = {};
+  for (const [key, value] of Object.entries(env || {})) {
+    result[key] = value
+      .replace(/\$\{PROJECT_DIR\}/g, PROJECT_DIR)
+      .replace(/\$\{PATH\}/g, process.env.PATH || "");
+  }
+  return result;
+}
+
+/**
+ * Build extension → { id, server } map from config.
+ */
+function buildExtensionMap(config) {
+  const map = {};
+  for (const [serverName, server] of Object.entries(config.servers || {})) {
+    for (const [ext, langId] of Object.entries(server.extensions || {})) {
+      map[ext] = { id: langId, server: serverName };
+    }
+  }
+  return map;
+}
+
+// Module-level extension map, populated in main()
+let extToLanguage = {};
 
 // ---------------------------------------------------------------------------
 // LSP JSON-RPC Client — generic, works with any LSP server
@@ -357,21 +439,12 @@ class LSPClient {
 }
 
 // ---------------------------------------------------------------------------
-// Language routing — maps file extensions to LSP clients
+// Language routing — built from config at startup
 // ---------------------------------------------------------------------------
-
-const EXT_TO_LANGUAGE = {
-  ".ts": { id: "typescript", server: "typescript" },
-  ".tsx": { id: "typescriptreact", server: "typescript" },
-  ".js": { id: "javascript", server: "typescript" },
-  ".jsx": { id: "javascriptreact", server: "typescript" },
-  ".py": { id: "python", server: "ruff" },
-  ".pyi": { id: "python", server: "ruff" },
-};
 
 function getLanguageInfo(filePath) {
   const ext = extname(filePath).toLowerCase();
-  return EXT_TO_LANGUAGE[ext] || null;
+  return extToLanguage[ext] || null;
 }
 
 // ---------------------------------------------------------------------------
@@ -485,96 +558,53 @@ function severityName(severity) {
 }
 
 // ---------------------------------------------------------------------------
-// Server factory — creates LSP clients for available servers
+// Server factory — creates LSP clients from config
 // ---------------------------------------------------------------------------
 
-async function createServers() {
+async function createServers(config) {
   const servers = {};
 
-  // --- TypeScript Language Server ---
-  const tsLspBin = join(FRONTEND_DIR, "node_modules", ".bin", "typescript-language-server");
-  if (existsSync(tsLspBin) && existsSync(join(FRONTEND_DIR, "tsconfig.json"))) {
-    const rootUri = `file://${FRONTEND_DIR}`;
+  for (const [name, serverConfig] of Object.entries(config.servers || {})) {
+    // Check requirements
+    if (!checkRequirements(serverConfig)) {
+      log("INFO", `[${name}] Skipped (requirements not met)`);
+      continue;
+    }
+
+    // Resolve command binary
+    const command = resolveCommand(serverConfig);
+    if (!command) {
+      log("INFO", `[${name}] Skipped (command not found: ${serverConfig.command})`);
+      continue;
+    }
+
+    const cwd = serverConfig.cwd ? join(PROJECT_DIR, serverConfig.cwd) : PROJECT_DIR;
+    const root = serverConfig.root ? join(PROJECT_DIR, serverConfig.root) : cwd;
+    const rootUri = `file://${root}`;
+
     const client = new LSPClient(
-      "typescript",
+      name,
       {
-        command: tsLspBin,
-        args: ["--stdio"],
-        cwd: FRONTEND_DIR,
-        env: {
-          PATH: `${join(FRONTEND_DIR, "node_modules", ".bin")}:${process.env.PATH}`,
-        },
+        command,
+        args: serverConfig.args || [],
+        cwd,
+        env: interpolateEnv(serverConfig.env),
       },
       {
         rootUri,
-        rootPath: FRONTEND_DIR,
-        workspaceFolders: [{ uri: rootUri, name: "frontend" }],
+        rootPath: root,
+        workspaceFolders: [{ uri: rootUri, name }],
       },
     );
 
     try {
       client.start();
       await client.initialize();
-      servers.typescript = client;
-      log("INFO", "TypeScript LSP server ready");
+      servers[name] = client;
+      log("INFO", `[${name}] LSP server ready`);
     } catch (err) {
-      log("ERROR", `Failed to start TypeScript LSP: ${err.message}`);
+      log("ERROR", `[${name}] Failed to start: ${err.message}`);
     }
-  } else {
-    log("INFO", "TypeScript LSP skipped (typescript-language-server or tsconfig.json not found)");
-  }
-
-  // --- Ruff Language Server (Python) ---
-  // Ruff has a built-in LSP: `ruff server`
-  let ruffBin = null;
-
-  // Check for ruff in venv first, then uv-managed, then PATH
-  const ruffLocations = [
-    join(PROJECT_DIR, ".venv", "bin", "ruff"),
-    join(PROJECT_DIR, "node_modules", ".bin", "ruff"),
-  ];
-  for (const loc of ruffLocations) {
-    if (existsSync(loc)) {
-      ruffBin = loc;
-      break;
-    }
-  }
-  if (!ruffBin) {
-    // Try PATH
-    try {
-      ruffBin = execSync("which ruff", { encoding: "utf-8" }).trim();
-    } catch {
-      // not found
-    }
-  }
-
-  if (ruffBin) {
-    const rootUri = `file://${PROJECT_DIR}`;
-    const client = new LSPClient(
-      "ruff",
-      {
-        command: ruffBin,
-        args: ["server"],
-        cwd: PROJECT_DIR,
-        env: {},
-      },
-      {
-        rootUri,
-        rootPath: PROJECT_DIR,
-        workspaceFolders: [{ uri: rootUri, name: "project" }],
-      },
-    );
-
-    try {
-      client.start();
-      await client.initialize();
-      servers.ruff = client;
-      log("INFO", "Ruff LSP server ready");
-    } catch (err) {
-      log("ERROR", `Failed to start Ruff LSP: ${err.message}`);
-    }
-  } else {
-    log("INFO", "Ruff LSP skipped (ruff not found)");
   }
 
   return servers;
@@ -641,8 +671,13 @@ async function main() {
 
   log("INFO", `LSP Bridge starting (project: ${PROJECT_DIR})`);
 
-  // Start all available LSP servers
-  servers = await createServers();
+  // Load config and start LSP servers
+  const config = loadConfig();
+  extToLanguage = buildExtensionMap(config);
+  log("INFO", `Loaded config with servers: ${Object.keys(config.servers || {}).join(", ")}`);
+  log("INFO", `Supported extensions: ${Object.keys(extToLanguage).join(", ")}`);
+
+  servers = await createServers(config);
 
   const serverNames = Object.keys(servers);
   if (serverNames.length === 0) {

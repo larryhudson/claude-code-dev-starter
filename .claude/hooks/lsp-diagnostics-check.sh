@@ -25,15 +25,6 @@ if [ -z "$FILE_PATH" ]; then
   exit 0
 fi
 
-# Only check supported file types (TypeScript/JavaScript/Python)
-case "$FILE_PATH" in
-  *.ts|*.tsx|*.js|*.jsx|*.py|*.pyi) ;;
-  *)
-    echo '{}'
-    exit 0
-    ;;
-esac
-
 # Check if the LSP bridge is running
 if [ ! -f "$SOCKET_FILE" ]; then
   # Bridge not running — skip silently
