@@ -1,9 +1,14 @@
 """Main test entry point for agent evaluations."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import pytest
 from pydantic_evals import Case, Dataset
 
-from evals.tasks.agent_task import AgentInput, AgentOutput
+if TYPE_CHECKING:
+    from evals.tasks.agent_task import AgentInput, AgentOutput
 
 
 class TestToolUsage:

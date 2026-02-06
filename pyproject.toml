@@ -18,24 +18,58 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = [
-    "E",    # pycodestyle errors
-    "W",    # pycodestyle warnings
-    "F",    # Pyflakes (unused variables, imports, etc.)
-    "I",    # isort (import sorting)
-    "B",    # flake8-bugbear
-    "UP",   # pyupgrade
-    "C4",   # flake8-comprehensions
-    "RUF",  # Ruff-specific rules
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # Pyflakes (unused variables, imports, etc.)
+    "I",      # isort (import sorting)
+    "B",      # flake8-bugbear
+    "UP",     # pyupgrade
+    "C4",     # flake8-comprehensions
+    "RUF",    # Ruff-specific rules
+    "S",      # flake8-bandit (security)
+    "SIM",    # flake8-simplify
+    "N",      # pep8-naming
+    "A",      # flake8-builtins (no shadowing builtins)
+    "T20",    # flake8-print (no print statements)
+    "ARG",    # flake8-unused-arguments
+    "RET",    # flake8-return
+    "PT",     # flake8-pytest-style
+    "PERF",   # Perflint (performance)
+    "DTZ",    # flake8-datetimez (timezone-aware datetime)
+    "ERA",    # eradicate (commented-out code)
+    "TCH",    # flake8-type-checking (optimize imports)
+    "PIE",    # flake8-pie (misc. lints)
+    "PLC",    # Pylint conventions
+    "PLE",    # Pylint errors
+    "PLW",    # Pylint warnings
+    "PLR",    # Pylint refactoring
+    "FBT",    # flake8-boolean-trap
+    "ICN",    # flake8-import-conventions
+    "TID",    # flake8-tidy-imports
+    "G",      # flake8-logging-format
 ]
 ignore = [
-    "E501",  # Line too long (handled by formatter)
+    "E501",     # Line too long (handled by formatter)
+    "S101",     # Use of assert (needed in tests and pydantic)
+    "ARG001",   # Unused function argument (common in FastAPI deps/handlers)
+    "RET504",   # Unnecessary assignment before return (can aid readability)
+    "PLR0913",  # Too many arguments to function call (common in DI)
+    "PLR2004",  # Magic value used in comparison (too noisy)
+    "FBT001",   # Boolean positional arg in function definition (too strict for FastAPI)
+    "FBT002",   # Boolean default value in function definition
 ]
 unfixable = [
     "F401",  # Unused imports - report but don't auto-remove
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["main"]
+known-first-party = ["app", "evals"]
+
+[tool.ruff.lint.per-file-ignores]
+"evals/**/*.py" = ["T20", "PLC0415", "A002"]  # Allow print, lazy imports, builtin shadowing in evals
+"**/conftest.py" = ["ARG"]                     # Fixtures often have unused args
+".claude/hooks/**/*.py" = ["T20", "S602", "PLW1510", "PLR0912"]  # Hooks use print, subprocess, complex control flow
+"main.py" = ["S104"]                           # Binding to 0.0.0.0 is intentional for containers
 
 [dependency-groups]
 dev = [

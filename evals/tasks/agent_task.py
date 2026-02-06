@@ -61,9 +61,9 @@ async def run_agent_task(input: AgentInput) -> AgentOutput:
     # Extract tool call names from the result
     tool_calls: list[str] = []
     for message in result.all_messages():
-        for part in message.parts:
-            if isinstance(part, ToolCallPart):
-                tool_calls.append(part.tool_name)
+        tool_calls.extend(
+            part.tool_name for part in message.parts if isinstance(part, ToolCallPart)
+        )
 
     return AgentOutput(
         response=result.output,

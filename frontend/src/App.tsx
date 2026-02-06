@@ -26,7 +26,7 @@ function isToolPart(part: { type: string }): part is ToolPart {
 }
 
 // Type for tool parts
-type ToolPart = {
+interface ToolPart {
   type: string
   toolCallId: string
   toolName?: string // for dynamic-tool
@@ -114,7 +114,7 @@ function App() {
                 return (
                   <Message key={message.id} from={message.role}>
                     <MessageContent>
-                      {message.parts?.map((part, index) => {
+                      {message.parts.map((part, index) => {
                         // Render text parts
                         if (part.type === "text") {
                           const textPart = part as { type: "text"; text: string }
@@ -155,14 +155,14 @@ function App() {
           <PromptInput
             onSubmit={({ text }) => {
               if (text.trim()) {
-                sendMessage({ text })
+                void sendMessage({ text })
                 setInput("")
               }
             }}
           >
             <PromptInputTextarea
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e) => { setInput(e.target.value); }}
               placeholder="Type a message..."
               disabled={isLoading}
             />
