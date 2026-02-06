@@ -52,6 +52,12 @@ if [ -f "package.json" ] && [ ! -d "node_modules" ]; then
   npm install
 fi
 
+# Ensure frontend npm dependencies are installed
+if [ -f "frontend/package.json" ] && [ ! -d "frontend/node_modules" ]; then
+  echo "Installing frontend npm dependencies..."
+  (cd frontend && npm install)
+fi
+
 # Ensure Python dependencies are synced if pyproject.toml exists
 if [ -f "pyproject.toml" ] && command -v uv &> /dev/null; then
   echo "Syncing Python dependencies with uv..."
@@ -78,6 +84,63 @@ if [ -f ".pre-commit-config.yaml" ]; then
       pre-commit install
     fi
   fi
+fi
+
+# Start the LSP bridge daemon for TypeScript and Python diagnostics
+start_lsp_bridge() {
+  local PID_FILE="$CLAUDE_PROJECT_DIR/.claude/hooks/lsp-bridge.pid"
+  local BRIDGE_SCRIPT="$CLAUDE_PROJECT_DIR/.claude/hooks/lsp-bridge.mjs"
+
+  # Check if bridge is already running
+  if [ -f "$PID_FILE" ]; then
+    local OLD_PID
+    OLD_PID=$(cat "$PID_FILE")
+    if kill -0 "$OLD_PID" 2>/dev/null; then
+      echo "LSP bridge already running (PID $OLD_PID)"
+      return 0
+    fi
+    # Stale PID file — clean up
+    rm -f "$PID_FILE"
+  fi
+
+  # Check if at least one LSP server can be started
+  local HAS_TS=false
+  local HAS_RUFF=false
+
+  if [ -f "frontend/node_modules/.bin/typescript-language-server" ]; then
+    HAS_TS=true
+  fi
+
+  if command -v ruff &> /dev/null; then
+    HAS_RUFF=true
+  fi
+
+  if [ "$HAS_TS" = false ] && [ "$HAS_RUFF" = false ]; then
+    echo "No LSP servers available, skipping LSP bridge"
+    return 0
+  fi
+
+  echo "Starting LSP bridge daemon..."
+  nohup node "$BRIDGE_SCRIPT" > /dev/null 2>&1 &
+
+  # Wait briefly for the bridge to initialize
+  sleep 3
+
+  if [ -f "$PID_FILE" ]; then
+    local BRIDGE_PID
+    BRIDGE_PID=$(cat "$PID_FILE")
+    local SERVERS=""
+    [ "$HAS_TS" = true ] && SERVERS="TypeScript"
+    [ "$HAS_RUFF" = true ] && SERVERS="${SERVERS:+$SERVERS + }Ruff (Python)"
+    echo "LSP bridge started (PID $BRIDGE_PID) — $SERVERS diagnostics active"
+  else
+    echo "Warning: LSP bridge may have failed to start. Check .claude/hooks/lsp-bridge.log"
+  fi
+}
+
+# Start bridge if TypeScript or Python sources exist
+if [ -f "frontend/tsconfig.json" ] || [ -f "pyproject.toml" ]; then
+  start_lsp_bridge
 fi
 
 # Provide development context
