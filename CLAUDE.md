@@ -19,3 +19,41 @@
 - Use **npm** (not pnpm) for frontend packages
 - Use **uv** for Python package management
 - Add dev dependencies to `[dependency-groups] dev` in pyproject.toml
+
+## LSP Integration
+
+Real-time diagnostics from language servers are provided via an LSP bridge daemon that runs during Claude Code sessions.
+
+### How it works
+
+1. **SessionStart hook** (`.claude/hooks/session-start.sh`) starts the bridge daemon
+2. **LSP bridge** (`.claude/hooks/lsp-bridge.mjs`) spawns language servers defined in config, communicates via LSP JSON-RPC, and exposes an HTTP API on a Unix socket
+3. **PostToolUse hook** (`.claude/hooks/lsp-diagnostics-check.sh`) queries the bridge after every Write/Edit, surfacing errors and warnings as context
+
+### Configuring language servers
+
+Servers are defined in `.claude/hooks/lsp-servers.yaml`. To add a new language server, add an entry:
+
+```yaml
+  myserver:
+    command: my-language-server    # binary name or path
+    args: ["--stdio"]              # CLI arguments
+    search:                        # project-relative paths to try
+      - node_modules/.bin/my-language-server
+    cwd: subdir                    # working directory (optional)
+    root: subdir                   # LSP workspace root (optional)
+    env:                           # extra env vars (optional)
+      PATH: "${PROJECT_DIR}/node_modules/.bin:${PATH}"
+    requires:                      # only start if these exist
+      - tsconfig.json
+    extensions:                    # file extension -> LSP language ID
+      .xyz: mylang
+```
+
+The bridge resolves commands by checking `search` paths first, then falling back to `$PATH`. Servers whose `requires` files don't exist are silently skipped.
+
+### Debugging
+
+- Bridge logs: `.claude/hooks/lsp-bridge.log`
+- Health check: `curl --unix-socket "$(cat .claude/hooks/lsp-bridge.socket)" http://localhost/health`
+- Manual diagnostics: `curl --unix-socket "$(cat .claude/hooks/lsp-bridge.socket)" -X POST -H "Content-Type: application/json" -d '{"file":"/absolute/path"}' http://localhost/diagnostics`
