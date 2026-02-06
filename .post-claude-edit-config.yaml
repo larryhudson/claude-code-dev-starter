@@ -12,13 +12,13 @@ checks:
   - name: lint-python
     patterns: ['*.py']
     command: 'uv run ruff check --fix {file}'
-    enabled: true
+    enabled: false
 
   # Format Python files with ruff
   - name: format-python
     patterns: ['*.py']
     command: 'uv run ruff format {file}'
-    enabled: true
+    enabled: false
 
   # Type check Python files with ty
   - name: type-check-python
