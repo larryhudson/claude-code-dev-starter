@@ -7,7 +7,8 @@ A production-ready full-stack template for building AI-powered applications opti
 - **AI Chat Interface**: Real-time chat with a Claude-powered agent via Pydantic AI
 - **MCP Tool Server**: FastMCP server exposing project information and commands as tools
 - **Full-Stack Architecture**: FastAPI backend + React/TypeScript frontend
-- **Post-Edit Automation**: Automatic linting, formatting, and type-checking after Claude modifies files
+- **LSP Bridge Daemon**: Real-time diagnostics from TypeScript, Python, and Go language servers after every file edit
+- **Post-Edit Automation**: Automatic type-checking and linting after Claude modifies files
 - **Agent Evaluations**: Pydantic-evals framework for testing agent behavior
 - **CI/CD Pipeline**: GitHub Actions for linting, type-checking, and evaluations
 
@@ -110,8 +111,12 @@ The application will be available at:
 ├── .claude/                          # Claude Code integration
 │   ├── settings.json                 # Permissions and hook configuration
 │   └── hooks/
-│       ├── post-tool-use.py          # Auto-runs checks after file edits
-│       └── session-start.sh          # Session initialization
+│       ├── lsp-bridge.mjs            # LSP bridge daemon (spawns language servers)
+│       ├── lsp-servers.yaml          # Language server configuration
+│       ├── lsp-diagnostics-check.sh  # PostToolUse hook: queries LSP diagnostics
+│       ├── lsp-bridge-stop.sh        # SessionEnd hook: stops LSP bridge
+│       ├── post-tool-use.py          # PostToolUse hook: config-driven checks
+│       └── session-start.sh          # SessionStart hook: env setup + LSP start
 │
 ├── app/                              # FastAPI backend
 │   ├── main.py                       # FastAPI app with MCP mounting
@@ -193,15 +198,32 @@ make evals-report # Run evals with detailed report
 
 The project includes hooks that integrate with Claude Code:
 
-- **PostToolUse Hook**: Automatically runs after Claude modifies files
-  - Lints and formats Python files with ruff
-  - Type-checks with ty
-  - Configured in `.post-claude-edit-config.yaml`
+- **PostToolUse Hook** (LSP diagnostics): Queries the LSP bridge daemon after every Write/Edit
+  - Returns real-time errors and warnings from language servers as context
+  - Supports TypeScript, Python, and Go files
+
+- **PostToolUse Hook** (config-driven checks): Runs additional checks based on `.post-claude-edit-config.yaml`
+  - Type-checks Python files with ty
+  - Lints frontend files with oxlint
 
 - **SessionStart Hook**: Runs when a Claude Code session starts
-  - Checks for required tools
-  - Installs dependencies if needed
+  - Installs dependencies (npm, uv sync)
+  - Starts the LSP bridge daemon
   - Provides context about available commands
+
+- **SessionEnd Hook**: Runs when a Claude Code session ends
+  - Stops the LSP bridge daemon
+
+### LSP Bridge
+
+The LSP bridge daemon (`.claude/hooks/lsp-bridge.mjs`) provides real-time diagnostics by running language servers in the background. It is started automatically by the SessionStart hook and queried after every file edit.
+
+Configured language servers (in `.claude/hooks/lsp-servers.yaml`):
+- **TypeScript** (`typescript-language-server`) - for `.ts`, `.tsx`, `.js`, `.jsx` files
+- **Python** (`ruff server`) - for `.py` files
+- **Go** (`gopls`) - for `.go` files
+
+To add a new language server, add an entry to `lsp-servers.yaml`. See `CLAUDE.md` for the full configuration schema.
 
 ### MCP Tools
 
