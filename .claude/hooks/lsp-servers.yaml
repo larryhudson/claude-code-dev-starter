@@ -43,3 +43,13 @@ servers:
     extensions:
       .py: python
       .pyi: python
+
+  gopls:
+    command: gopls
+    args: ["serve"]
+    cwd: tools
+    root: tools
+    requires:
+      - tools/go.mod
+    extensions:
+      .go: go
