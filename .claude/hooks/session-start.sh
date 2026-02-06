@@ -86,10 +86,11 @@ if [ -f ".pre-commit-config.yaml" ]; then
   fi
 fi
 
-# Start the LSP bridge daemon for TypeScript and Python diagnostics
+# Start the LSP bridge daemon — reads server config from lsp-servers.yaml
 start_lsp_bridge() {
   local PID_FILE="$CLAUDE_PROJECT_DIR/.claude/hooks/lsp-bridge.pid"
   local BRIDGE_SCRIPT="$CLAUDE_PROJECT_DIR/.claude/hooks/lsp-bridge.mjs"
+  local CONFIG_FILE="$CLAUDE_PROJECT_DIR/.claude/hooks/lsp-servers.yaml"
 
   # Check if bridge is already running
   if [ -f "$PID_FILE" ]; then
@@ -103,20 +104,14 @@ start_lsp_bridge() {
     rm -f "$PID_FILE"
   fi
 
-  # Check if at least one LSP server can be started
-  local HAS_TS=false
-  local HAS_RUFF=false
-
-  if [ -f "frontend/node_modules/.bin/typescript-language-server" ]; then
-    HAS_TS=true
+  # Need both the config file and the bridge script
+  if [ ! -f "$CONFIG_FILE" ]; then
+    echo "No LSP server config found ($CONFIG_FILE), skipping LSP bridge"
+    return 0
   fi
 
-  if command -v ruff &> /dev/null; then
-    HAS_RUFF=true
-  fi
-
-  if [ "$HAS_TS" = false ] && [ "$HAS_RUFF" = false ]; then
-    echo "No LSP servers available, skipping LSP bridge"
+  if [ ! -f "$BRIDGE_SCRIPT" ]; then
+    echo "LSP bridge script not found ($BRIDGE_SCRIPT), skipping"
     return 0
   fi
 
@@ -129,17 +124,14 @@ start_lsp_bridge() {
   if [ -f "$PID_FILE" ]; then
     local BRIDGE_PID
     BRIDGE_PID=$(cat "$PID_FILE")
-    local SERVERS=""
-    [ "$HAS_TS" = true ] && SERVERS="TypeScript"
-    [ "$HAS_RUFF" = true ] && SERVERS="${SERVERS:+$SERVERS + }Ruff (Python)"
-    echo "LSP bridge started (PID $BRIDGE_PID) — $SERVERS diagnostics active"
+    echo "LSP bridge started (PID $BRIDGE_PID) — config: $CONFIG_FILE"
   else
     echo "Warning: LSP bridge may have failed to start. Check .claude/hooks/lsp-bridge.log"
   fi
 }
 
-# Start bridge if TypeScript or Python sources exist
-if [ -f "frontend/tsconfig.json" ] || [ -f "pyproject.toml" ]; then
+# Start bridge if config exists
+if [ -f ".claude/hooks/lsp-servers.yaml" ]; then
   start_lsp_bridge
 fi
 

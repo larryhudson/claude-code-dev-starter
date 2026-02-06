@@ -25,15 +25,6 @@ if [ -z "$FILE_PATH" ]; then
   exit 0
 fi
 
-# Only check supported file types (TypeScript/JavaScript/Python)
-case "$FILE_PATH" in
-  *.ts|*.tsx|*.js|*.jsx|*.py|*.pyi) ;;
-  *)
-    echo '{}'
-    exit 0
-    ;;
-esac
-
 # Check if the LSP bridge is running
 if [ ! -f "$SOCKET_FILE" ]; then
   # Bridge not running — skip silently
@@ -71,16 +62,26 @@ if [ "$DIAG_COUNT" -eq 0 ]; then
   exit 0
 fi
 
-# Format diagnostics into a readable string for Claude
-CONTEXT=$(echo "$RESPONSE" | jq -r '
-  .diagnostics[] |
-  "\(.severity | ascii_upcase): \(.message) (line \(.range.start.line), col \(.range.start.character))" +
-  (if .code then " [\(.source) \(.code | tostring)]" else "" end)
+# Make path relative to project dir for compact output
+REL_PATH="${FILE_PATH#$PROJECT_DIR/}"
+
+# Format diagnostics compactly — minimize tokens for LLM context
+CONTEXT=$(echo "$RESPONSE" | jq -r --arg rel "$REL_PATH" '
+  (.diagnostics | map(select(.severity == "error")) | length) as $e |
+  (.diagnostics | map(select(.severity == "warning")) | length) as $w |
+  (
+    (if $e > 0 then "\($e) error\(if $e > 1 then "s" else "" end)" else "" end) +
+    (if $e > 0 and $w > 0 then ", " else "" end) +
+    (if $w > 0 then "\($w) warning\(if $w > 1 then "s" else "" end)" else "" end) +
+    (if $e == 0 and $w == 0 then "\(.diagnostics | length) issues" else "" end)
+  ) as $summary |
+  "LSP \($rel) (\($summary))",
+  (.diagnostics | sort_by(.range.start.line)[] |
+    "  \(.range.start.line): \(.message)")
 ')
 
 # Build the hook response with additionalContext
-jq -n --arg ctx "LSP Diagnostics for $FILE_PATH:
-$CONTEXT" '{
+jq -n --arg ctx "$CONTEXT" '{
   hookSpecificOutput: {
     hookEventName: "PostToolUse",
     additionalContext: $ctx
