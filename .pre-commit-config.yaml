@@ -27,6 +27,26 @@ repos:
         args: [--fix]
       - id: ruff-format
 
+  # Frontend linting with oxlint (fast)
+  - repo: local
+    hooks:
+      - id: oxlint
+        name: oxlint
+        entry: bash -c 'cd frontend && npx oxlint'
+        language: system
+        files: '^frontend/.*\.(ts|tsx)$'
+        pass_filenames: false
+
+  # Frontend linting with ESLint (type-aware, slower)
+  - repo: local
+    hooks:
+      - id: eslint
+        name: eslint (type-aware)
+        entry: bash -c 'cd frontend && npx eslint .'
+        language: system
+        files: '^frontend/.*\.(ts|tsx)$'
+        pass_filenames: false
+
   # YAML linting
   - repo: https://github.com/adrienverge/yamllint.git
     rev: v1.32.0
