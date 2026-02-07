@@ -311,3 +311,5 @@ Triggered on pushes to main/develop and pull requests.
 ## License
 
 This template is provided as-is for use with Claude Code projects.
+
+hello world
