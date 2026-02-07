@@ -1,9 +1,11 @@
 # Development
 .dev.pid
 dev.log
+eval-report.txt
 
 # Python
 __pycache__/
+.pytest_cache/
 *.py[cod]
 *$py.class
 *.so
@@ -38,6 +40,9 @@ ehthumbs.db
 .claude/hooks/lsp-bridge.pid
 .claude/hooks/lsp-bridge.socket
 .claude/hooks/lsp-bridge.log
+
+# Claude local settings
+.claude/settings.local.json
 
 # Frontend
 frontend/node_modules/
