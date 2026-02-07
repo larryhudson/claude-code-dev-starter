@@ -44,6 +44,9 @@ ehthumbs.db
 # Claude local settings
 .claude/settings.local.json
 
+# Codex (duplicate skills directory)
+.codex/
+
 # Frontend
 frontend/node_modules/
 frontend/dist/
