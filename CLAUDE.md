@@ -20,6 +20,12 @@
 - Use **uv** for Python package management
 - Add dev dependencies to `[dependency-groups] dev` in pyproject.toml
 
+### Checking for latest package versions
+
+- Use `pip index versions <package>` to check the latest version of a Python package
+- Example: `pip index versions pydantic-ai`
+- Do NOT use web search for checking package versions - use the pip CLI instead
+
 ## LSP Integration
 
 Real-time diagnostics from language servers are provided via an LSP bridge daemon that runs during Claude Code sessions.
